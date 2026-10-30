@@ -1,0 +1,24 @@
+FROM python:latest
+
+# Update package lists and install sqlite3, development headers, and build tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends sqlite3 libsqlite3-dev build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Explicitly set the SQLite3 library path during pysqlite3 installation
+RUN LDFLAGS="-L/usr/lib/x86_64-linux-gnu" CPPFLAGS="-I/usr/include" pip uninstall -y pysqlite3 && \
+    LDFLAGS="-L/usr/lib/x86_64-linux-gnu" CPPFLAGS="-I/usr/include" pip install --no-cache-dir pysqlite3
+
+# Install Python dependencies (including ChromaDB) *after* updating sqlite
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Verify SQLite version (optional, but recommended for debugging)
+RUN python -c "import sqlite3; print(sqlite3.sqlite_version)"
+
+COPY . .
+
+CMD ["python", "app.py"]
